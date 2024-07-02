@@ -1,4 +1,4 @@
-import { Sprite } from "./sprite";
+import { Sprite } from "./sprite.js";
 
 export class GraphicsObject {
   backupCharacter;
@@ -70,7 +70,7 @@ GraphicsObject.prototype.draw = function (context, x, y) {
     context.fillText(this.backupCharacter, x, y);
     return;
   }
-  let i = this.state % spriteArr.length;
+  let i = this.anim.state % spriteArr.length;
   spriteArr[i].draw(context, x, y);
 };
 

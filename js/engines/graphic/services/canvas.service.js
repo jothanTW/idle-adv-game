@@ -17,15 +17,15 @@ let canvasHeight = 600;
 
 let CanvasService = {
   /** @type {HTMLElement} */
-  container,
+  container: null,
   /** @type {CanvasSet} */
-  foreground,
+  foreground: null,
   /** @type {CanvasSet} */
-  background,
+  background: null,
   /** @type {CanvasSet} */
-  hud,
+  hud: null,
   /** @type {string} */
-  backgroundColor,
+  backgroundColor: '#fff',
 
   /**
    * Initializes the CanvasService in a new or existing container
@@ -39,6 +39,7 @@ let CanvasService = {
     this.container = document.getElementById(containerId);
     if (!this.container) {
       this.container = document.createElement('div');
+      this.container.classList.add('mainCanvasContainer');
       document.getElementsByTagName('body')[0].appendChild(this.container);
     }
 
@@ -91,6 +92,7 @@ function loadCanvas(canvasSet, canvasId) {
   canvasSet.canvas = document.getElementById(canvasId);
   if (!canvasSet.canvas) {
     canvasSet.canvas = document.createElement('canvas');
+    canvasSet.canvas.classList.add(canvasId);
     CanvasService.container.appendChild(canvasSet.canvas);
   }
 

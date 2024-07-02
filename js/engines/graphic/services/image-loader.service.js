@@ -1,7 +1,10 @@
-import { Sprite } from "../models/sprite";
+import { Sprite } from "../models/sprite.js";
 
 /** @type {Map<string, HTMLImageElement>} */
 let sourceImages = new Map();
+let mirroredHImages = new Map();
+let mirroredVImages = new Map();
+let mirroredRImages = new Map();
 
 let transformCanvas = document.createElement('canvas');
 let transformContext = transformCanvas.getContext('2d');
@@ -11,7 +14,7 @@ let ImageLoaderService = {
    * @type {{r: number, g: number, b: number}} 
    */
   transparentColorReplacement: {
-    r: 0, g: 0, b: 0
+    r: 255, g: 0, b: 255
   },
 
   /**
@@ -42,15 +45,16 @@ let ImageLoaderService = {
         let pxArray = transformContext.getImageData(0, 0, img.width, img.height);
         for (let i = 0; i < pxArray.data.length; i += 4) {
           if (
-            pxArray.data[i] === this.transparentColorReplacement.r &&
-            pxArray.data[i + 1] === this.transparentColorReplacement.g &&
-            pxArray.data[i + 2] === this.transparentColorReplacement.b
+            pxArray.data[i] === ImageLoaderService.transparentColorReplacement.r &&
+            pxArray.data[i + 1] === ImageLoaderService.transparentColorReplacement.g &&
+            pxArray.data[i + 2] === ImageLoaderService.transparentColorReplacement.b
           ) {
-            pxArray[i + 3] = 0;
+            pxArray.data[i + 3] = 0;
           }
         }
 
         // put the transformed pixels into a new image and store it
+        transformContext.clearRect(0, 0, img.width, img.height)
         transformContext.putImageData(pxArray, 0, 0);
         let nImage = new Image();
         nImage.src = transformCanvas.toDataURL();
@@ -62,14 +66,16 @@ let ImageLoaderService = {
 
   /**
    * Creates a sprite from a registered image
-   * @param {string} name 
-   * @param {number} x 
-   * @param {number} y 
-   * @param {number} w 
-   * @param {number} h 
+   * @param {string} name - The name of the registered spritesheet
+   * @param {number} x - The left coordinate of the sprite
+   * @param {number} y = The top coordinate of the sprite
+   * @param {number} w - The width of the sprite
+   * @param {number} h - The height of the sprite
+   * @param {boolean} mirrorH - Should the image be flipped horizontally
+   * @param {boolean} mirrorY - Should the image be flipped vertically
    * @returns {Sprite}
    */
-  createSprite: function(name, x, y, w, h) {
+  createSprite: function(name, x, y, w, h, mirrorH = false, mirrorV = false) {
     let img = sourceImages.get(name);
     if (!img) {
       throw 'Image ' + name + ' was not loaded!';
@@ -77,8 +83,133 @@ let ImageLoaderService = {
     if (x < 0 || y < 0 || x + w > img.width || y + h > img.height) {
       throw 'Sprite bounds are outside the bounds of the image!';
     }
+    if (w < 0 || h < 0) {
+      throw 'Cannot make a sprite with negative width/height- to flip an image, use mirrorH or mirrorV arguments';
+    }
+    if (mirrorH) {
+      if (mirrorV) {
+        console.log('creating rotated image')
+        return this.createMirroredRSprite(name, x, y, w, h);
+      }
+      console.log('creating h flipped image')
+      return this.createMirroredHSprite(name, x, y, w, h);
+    }
+    if (mirrorV) {
+      console.log('creating v flipped image')
+      return this.createMirroredVSprite(name, x, y, w, h);
+    }
+    console.log('creating normal image')
     return new Sprite(img, x, y, w, h);
-  }
+  },
+
+  createMirroredHSprite: function(name, x, y, w, h) {
+    if (!mirroredHImages.has(name)) {
+      this.mirrorImageH(name);
+    }
+    let img = mirroredHImages.get(name);
+    // transform the coordinates
+    y = img.height - (y + h);
+    return new Sprite(img, x, y, w, h);
+  },
+
+  createMirroredVSprite: function(name, x, y, w, h) {
+    if (!mirroredVImages.has(name)) {
+      this.mirrorImageV(name);
+    }
+    let img = mirroredVImages.get(name);
+    // transform the coordinates
+    x = img.width - (x + w);
+    return new Sprite(img, x, y, w, h);
+  },
+
+  createMirroredRSprite: function(name, x, y, w, h) {
+    if (!mirroredRImages.has(name)) {
+      this.mirrorImageR(name);
+    }
+    let img = mirroredRImages.get(name);
+    // transform the coordinates
+    x = img.width - (x + w);
+    y = img.height - (y + h);
+    return new Sprite(img, x, y, w, h);
+  },
+
+  mirrorImageH: function(name) {
+    if (!sourceImages.has(name)) {
+      throw 'Source image ' + name + ' has not been loaded!';
+    }
+    if (mirroredHImages.has(name)) {
+      return;
+    }
+
+    let img = sourceImages.get(name);
+
+    let mImage = new Image();
+    
+    transformCanvas.width = img.width;
+    transformCanvas.height = img.height;
+    transformContext.clearRect(0, 0, img.width, img.height);
+
+    transformContext.save();
+    transformContext.scale(1, -1);
+    transformContext.drawImage(img, 0, img.height * -1);
+    transformContext.restore();
+    
+    mImage.src = transformCanvas.toDataURL();
+
+    mirroredHImages.set(name, mImage);
+  },
+
+  mirrorImageV: function(name) {
+    if (!sourceImages.has(name)) {
+      throw 'Source image ' + name + ' has not been loaded!';
+    }
+    if (mirroredVImages.has(name)) {
+      return;
+    }
+
+    let img = sourceImages.get(name);
+
+    let mImage = new Image();
+    
+    transformCanvas.width = img.width;
+    transformCanvas.height = img.height;
+    transformContext.clearRect(0, 0, img.width, img.height);
+
+    transformContext.save();
+    transformContext.scale(-1, 1);
+    transformContext.drawImage(img, img.width * -1, 0);
+    transformContext.restore();
+    
+    mImage.src = transformCanvas.toDataURL();
+
+    mirroredVImages.set(name, mImage);
+  },
+  
+  mirrorImageR: function(name) {
+    if (!sourceImages.has(name)) {
+      throw 'Source image ' + name + ' has not been loaded!';
+    }
+    if (mirroredRImages.has(name)) {
+      return;
+    }
+
+    let img = sourceImages.get(name);
+
+    let mImage = new Image();
+    
+    transformCanvas.width = img.width;
+    transformCanvas.height = img.height;
+    transformContext.clearRect(0, 0, img.width, img.height);
+
+    transformContext.save();
+    transformContext.scale(-1, -1);
+    transformContext.drawImage(img, img.width * -1, img.height * -1);
+    transformContext.restore();
+    
+    mImage.src = transformCanvas.toDataURL();
+
+    mirroredRImages.set(name, mImage);
+  },
 };
 
 export { ImageLoaderService };

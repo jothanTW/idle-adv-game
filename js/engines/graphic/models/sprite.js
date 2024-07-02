@@ -38,5 +38,6 @@ export class Sprite {
  * @param {number} y 
  */
 Sprite.prototype.draw = function(context, x, y) {
+  console.log(this)
   context.drawImage(this.sheet, this.x, this.y, this.w, this.h, x, y, this.w, this.h);
 }
