@@ -2,16 +2,32 @@ import { Sprite } from "../models/sprite.js";
 
 /** @type {Map<string, HTMLImageElement>} */
 let sourceImages = new Map();
+/** @type {Map<string, HTMLImageElement>} */
 let mirroredHImages = new Map();
+/** @type {Map<string, HTMLImageElement>} */
 let mirroredVImages = new Map();
+/** @type {Map<string, HTMLImageElement>} */
 let mirroredRImages = new Map();
+
+/**
+ * A color
+ * @typedef Color
+ * @property {number} r
+ * @property {number} g
+ * @property {number} b
+ * @property {number} a
+ */
+
+/** @type {Map<Color, Color>} */
+let colorReplacements = new Map();
+
 
 let transformCanvas = document.createElement('canvas');
 let transformContext = transformCanvas.getContext('2d');
 
 let ImageLoaderService = {
   /** The pixels in loaded images to replace with transparency
-   * @type {{r: number, g: number, b: number}} 
+   * @type {Color} 
    */
   transparentColorReplacement: {
     r: 255, g: 0, b: 255
@@ -23,7 +39,7 @@ let ImageLoaderService = {
    * @param {string} name 
    * @returns {Promise<HTMLImageElement>}
    */
-  loadImageFromSource: function(url, name) {
+  loadImageFromSource: function (url, name) {
     return new Promise((resolve, reject) => {
       if (sourceImages.has(name)) {
         reject('Image already loaded for ' + name + '!');
@@ -31,10 +47,10 @@ let ImageLoaderService = {
 
       // reserve the name
       sourceImages.set(name, null);
-  
+
       let img = new Image();
       img.src = url;
-      img.onload = function() {
+      img.onload = function () {
         // draw the image to a fake canvas
         transformCanvas.width = img.width;
         transformCanvas.height = img.height;
@@ -50,6 +66,19 @@ let ImageLoaderService = {
             pxArray.data[i + 2] === ImageLoaderService.transparentColorReplacement.b
           ) {
             pxArray.data[i + 3] = 0;
+          } else {
+            for (let k of colorReplacements.keys()) {
+              if (
+                pxArray.data[i] === k.r &&
+                pxArray.data[i + 1] === k.g &&
+                pxArray.data[i + 2] === k.b) {
+                let c = colorReplacements.get(k);
+                pxArray.data[i] = c.r;
+                pxArray.data[i + 1] = c.g;
+                pxArray.data[i + 2] = c.b;
+                //pxArray.data[i + 3] = c.a;
+              }
+            }
           }
         }
 
@@ -58,8 +87,10 @@ let ImageLoaderService = {
         transformContext.putImageData(pxArray, 0, 0);
         let nImage = new Image();
         nImage.src = transformCanvas.toDataURL();
-        sourceImages.set(name, nImage);
-        resolve(nImage);
+        nImage.onload = () => {
+          sourceImages.set(name, nImage);
+          resolve(nImage);
+        }
       }
     });
   },
@@ -75,76 +106,81 @@ let ImageLoaderService = {
    * @param {boolean} mirrorY - Should the image be flipped vertically
    * @returns {Sprite}
    */
-  createSprite: function(name, x, y, w, h, mirrorH = false, mirrorV = false) {
+  createSprite: function (name, x, y, w, h, mirrorH = false, mirrorV = false) {
     let img = sourceImages.get(name);
     if (!img) {
       throw 'Image ' + name + ' was not loaded!';
     }
     if (x < 0 || y < 0 || x + w > img.width || y + h > img.height) {
-      throw 'Sprite bounds are outside the bounds of the image!';
+      throw 'Sprite bounds are outside the bounds of the ' + name + ' image!';
     }
     if (w < 0 || h < 0) {
       throw 'Cannot make a sprite with negative width/height- to flip an image, use mirrorH or mirrorV arguments';
     }
     if (mirrorH) {
       if (mirrorV) {
-        console.log('creating rotated image')
         return this.createMirroredRSprite(name, x, y, w, h);
       }
-      console.log('creating h flipped image')
       return this.createMirroredHSprite(name, x, y, w, h);
     }
     if (mirrorV) {
-      console.log('creating v flipped image')
       return this.createMirroredVSprite(name, x, y, w, h);
     }
-    console.log('creating normal image')
-    return new Sprite(img, x, y, w, h);
+    return Promise.resolve(new Sprite(img, x, y, w, h));
   },
 
-  createMirroredHSprite: function(name, x, y, w, h) {
+  createMirroredHSprite: function (name, x, y, w, h) {
+    let p = Promise.resolve();
     if (!mirroredHImages.has(name)) {
-      this.mirrorImageH(name);
+      p = this.mirrorImageH(name);
     }
-    let img = mirroredHImages.get(name);
-    // transform the coordinates
-    y = img.height - (y + h);
-    return new Sprite(img, x, y, w, h);
+    return p.then(() => {
+      let img = mirroredHImages.get(name);
+      // transform the coordinates
+      y = img.height - (y + h);
+      return new Sprite(img, x, y, w, h);
+    });
   },
 
-  createMirroredVSprite: function(name, x, y, w, h) {
+  createMirroredVSprite: function (name, x, y, w, h) {
+    let p = Promise.resolve();
     if (!mirroredVImages.has(name)) {
-      this.mirrorImageV(name);
+      p = this.mirrorImageV(name);
     }
-    let img = mirroredVImages.get(name);
-    // transform the coordinates
-    x = img.width - (x + w);
-    return new Sprite(img, x, y, w, h);
+    return p.then(() => {
+      let img = mirroredVImages.get(name);
+      // transform the coordinates
+      x = img.width - (x + w);
+      return new Sprite(img, x, y, w, h);
+    });
   },
 
-  createMirroredRSprite: function(name, x, y, w, h) {
+  createMirroredRSprite: function (name, x, y, w, h) {
+    let p = Promise.resolve();
     if (!mirroredRImages.has(name)) {
-      this.mirrorImageR(name);
+      p = this.mirrorImageR(name);
     }
-    let img = mirroredRImages.get(name);
-    // transform the coordinates
-    x = img.width - (x + w);
-    y = img.height - (y + h);
-    return new Sprite(img, x, y, w, h);
+    return p.then(() => {
+      let img = mirroredRImages.get(name);
+      // transform the coordinates
+      x = img.width - (x + w);
+      y = img.height - (y + h);
+      return new Sprite(img, x, y, w, h);
+    });
   },
 
-  mirrorImageH: function(name) {
+  mirrorImageH: function (name) {
     if (!sourceImages.has(name)) {
       throw 'Source image ' + name + ' has not been loaded!';
     }
     if (mirroredHImages.has(name)) {
-      return;
+      return Promise.resolve();
     }
 
     let img = sourceImages.get(name);
 
     let mImage = new Image();
-    
+
     transformCanvas.width = img.width;
     transformCanvas.height = img.height;
     transformContext.clearRect(0, 0, img.width, img.height);
@@ -153,24 +189,28 @@ let ImageLoaderService = {
     transformContext.scale(1, -1);
     transformContext.drawImage(img, 0, img.height * -1);
     transformContext.restore();
-    
-    mImage.src = transformCanvas.toDataURL();
 
-    mirroredHImages.set(name, mImage);
+    mImage.src = transformCanvas.toDataURL();
+    return new Promise((resolve, reject) => {
+      mImage.onload = () => {
+        mirroredHImages.set(name, mImage);
+        resolve();
+      }
+    });
   },
 
-  mirrorImageV: function(name) {
+  mirrorImageV: function (name) {
     if (!sourceImages.has(name)) {
       throw 'Source image ' + name + ' has not been loaded!';
     }
     if (mirroredVImages.has(name)) {
-      return;
+      return Promise.resolve();
     }
 
     let img = sourceImages.get(name);
 
     let mImage = new Image();
-    
+
     transformCanvas.width = img.width;
     transformCanvas.height = img.height;
     transformContext.clearRect(0, 0, img.width, img.height);
@@ -179,24 +219,28 @@ let ImageLoaderService = {
     transformContext.scale(-1, 1);
     transformContext.drawImage(img, img.width * -1, 0);
     transformContext.restore();
-    
-    mImage.src = transformCanvas.toDataURL();
 
-    mirroredVImages.set(name, mImage);
+    mImage.src = transformCanvas.toDataURL();
+    return new Promise((resolve, reject) => {
+      mImage.onload = () => {
+        mirroredVImages.set(name, mImage);
+        resolve();
+      }
+    });
   },
-  
-  mirrorImageR: function(name) {
+
+  mirrorImageR: function (name) {
     if (!sourceImages.has(name)) {
       throw 'Source image ' + name + ' has not been loaded!';
     }
     if (mirroredRImages.has(name)) {
-      return;
+      return Promise.resolve();
     }
 
     let img = sourceImages.get(name);
 
     let mImage = new Image();
-    
+
     transformCanvas.width = img.width;
     transformCanvas.height = img.height;
     transformContext.clearRect(0, 0, img.width, img.height);
@@ -205,11 +249,30 @@ let ImageLoaderService = {
     transformContext.scale(-1, -1);
     transformContext.drawImage(img, img.width * -1, img.height * -1);
     transformContext.restore();
-    
-    mImage.src = transformCanvas.toDataURL();
 
-    mirroredRImages.set(name, mImage);
+    mImage.src = transformCanvas.toDataURL();
+    return new Promise((resolve, reject) => {
+      mImage.onload = () => {
+        mirroredRImages.set(name, mImage);
+        resolve();
+      }
+    });
   },
+
+  /**
+   * Sets a color replacement for future image loads
+   * @param {Color} colorToReplace 
+   * @param {Color} newColor 
+   */
+  setColorReplacement(colorToReplace, newColor) {
+    if (!colorToReplace.a && colorToReplace.a !== 0) {
+      colorToReplace.a = 255;
+    }
+    if (!newColor.a && newColor.a !== 0) {
+      newColor.a = 255;
+    }
+    colorReplacements.set(colorToReplace, newColor);
+  }
 };
 
 export { ImageLoaderService };

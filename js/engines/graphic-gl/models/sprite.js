@@ -1,6 +1,6 @@
 export class Sprite {
-  /** @type {HTMLImageElement} */
-  sheet;
+  /** @type {number} */
+  sheetId;
   /** @type {number} */
   x;
   /** @type {number} */
@@ -9,17 +9,19 @@ export class Sprite {
   w;
   /** @type {number} */
   h;
+  /** @type {WebGLBuffer} */
+  texBuffer;
 
   /**
    * 
-   * @param {HTMLImageElement} sheet 
+   * @param {number} sheetId
    * @param {number} x 
    * @param {number} y 
    * @param {number} w 
    * @param {number} h 
    */
   constructor(sheet, x, y, w, h) {
-    /** @type {HTMLImageElement} */
+    /** @type {number} */
     this.sheet = sheet;
     /** @type {number} */
     this.x = x;
@@ -38,5 +40,24 @@ export class Sprite {
  * @param {number} y 
  */
 Sprite.prototype.draw = function(context, x, y) {
-  context.drawImage(this.sheet, this.x, this.y, this.w, this.h, x, y, this.w, this.h);
+  
+}
+
+/**
+ * @param {WebGLRenderingContext} gl 
+ */
+Sprite.prototype.setTextBuffer = function(gl) {
+  this.texBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
+
+  let l = this.x;
+  let t = this.y;
+  let r = this.x + this.w;
+  let b = this.y + this.h;
+
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([ l, t, r, t, r, b, l, b ]),
+    gl.STATIC_DRAW,
+  );
 }

@@ -52,11 +52,20 @@ let GraphicsEngine = {
    * @param {number} h - The height of the sprite
    * @param {boolean} mirrorH - Should the image be flipped horizontally
    * @param {boolean} mirrorY - Should the image be flipped vertically
-   * @returns {Sprite}
+   * @returns {Promise<Sprite>}
    */
   createSprite: function(name, x, y, w, h, mirrorV = false, mirrorH = false) {
     return ImageLoaderService.createSprite(name, x, y, w, h, mirrorH, mirrorV);
-  }
+  },
+
+    /**
+   * Sets a color replacement for future image loads
+   * @param {Color} colorToReplace 
+   * @param {Color} newColor 
+   */
+    setColorReplacement(colorToReplace, newColor) {
+      ImageLoaderService.setColorReplacement(colorToReplace, newColor);
+    },
 }
 
 export {
