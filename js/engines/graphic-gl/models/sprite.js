@@ -10,6 +10,8 @@ export class Sprite {
   /** @type {number} */
   h;
   /** @type {WebGLBuffer} */
+  vertBuffer;
+  /** @type {WebGLBuffer} */
   texBuffer;
 
   /**
@@ -46,7 +48,7 @@ Sprite.prototype.draw = function(context, x, y) {
 /**
  * @param {WebGLRenderingContext} gl 
  */
-Sprite.prototype.setTextBuffer = function(gl) {
+Sprite.prototype.setBuffers = function(gl) {
   this.texBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
 
@@ -60,4 +62,11 @@ Sprite.prototype.setTextBuffer = function(gl) {
     new Float32Array([ l, t, r, t, r, b, l, b ]),
     gl.STATIC_DRAW,
   );
+
+  this.vertBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER, 
+    new Float32Array([this.w, this.h, 0, this.h, this.w, 0, 0, 0]), 
+    gl.STATIC_DRAW);
 }

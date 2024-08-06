@@ -1,5 +1,6 @@
 import { GraphicsEngine } from './engines/graphic-gl/graphics.engine.js';
 import { CommonEngine } from './engines/common/common.engine.js';
+import { Sprite } from './engines/graphic-gl/models/sprite.js';
 
 GraphicsEngine.init('main').then(() => {
   let wGreenColors = {
@@ -16,16 +17,30 @@ GraphicsEngine.init('main').then(() => {
     g: '#9ca04c'
   };
 
+  let transparency = {
+    r: 255, g: 0, b: 255
+  };
+
+  let houseObj = new GraphicsEngine.GraphicsObject();
+  houseObj.x = 2;
+  houseObj.y = 2;
+
   Promise.all([
-    GraphicsEngine.loadTexture('/img/house.png').then(idx => {
+    GraphicsEngine.loadTexture('/img/house.png', transparency).then(idx => {
       console.log(idx)
       // load house sprites here
+      let spr = new Sprite(idx, 0, 0, 32, 32);
+      houseObj.setSprites(0, spr);
     }),
-    GraphicsEngine.loadTexture('/img/roads.png').then(idx => {
+    GraphicsEngine.loadTexture('/img/roads.png', transparency).then(idx => {
       console.log(idx)
       // load road sprites here
-    })
-  ])
+    }),
+    GraphicsEngine.loadPalette('/img/gb-palette.png')
+  ]).then(() => {
+    GraphicsEngine.setCameraFrame(0, 0, 1024, 1024);
+    GraphicsEngine.draw([houseObj]);
+  });
 });
 
 

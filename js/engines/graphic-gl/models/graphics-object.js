@@ -2,6 +2,8 @@ import { Sprite } from "./sprite.js";
 
 export class GraphicsObject {
   backupCharacter;
+  x;
+  y;
   color;
   anim;
   /** @type {{front: Sprite[], back: Sprite[], left: Sprite[], right: Sprite[]}} */
@@ -24,6 +26,8 @@ export class GraphicsObject {
       right: [],
     };
     this.facing = 0;
+    this.x = 0;
+    this.y = 0;
   }
 }
 
@@ -42,36 +46,27 @@ GraphicsObject.prototype.tick = function (time = 1) {
 };
 
 /**
- * 
- * @param {CanvasRenderingContext2D} context 
- * @param {number} x 
- * @param {number} y 
+ * @returns {Sprite}
  */
-GraphicsObject.prototype.draw = function (context, x, y) {
-  this.facing = this.facing % 4; // make sure here
-  let spriteArr;
-  switch (this.facing) {
-    case 0:
-      spriteArr = this.sprites.front;
-      break;
-    case 1:
-      spriteArr = this.sprites.left;
-      break;
-    case 2:
-      spriteArr = this.sprites.back;
-      break;
-    case 3:
-      spriteArr = this.sprites.right;
-      break;
-  }
-  if (spriteArr.length === 0) {
-    // draw the character
-    context.fillStyle = this.color;
-    context.fillText(this.backupCharacter, x, y);
-    return;
-  }
-  let i = this.anim.state % spriteArr.length;
-  spriteArr[i].draw(context, x, y);
+GraphicsObject.prototype.getCurrentSprite = function () {
+ this.facing = this.facing % 4; // make sure here
+ let spriteArr;
+ switch (this.facing) {
+   case 0:
+     spriteArr = this.sprites.front;
+     break;
+   case 1:
+     spriteArr = this.sprites.left;
+     break;
+   case 2:
+     spriteArr = this.sprites.back;
+     break;
+   case 3:
+     spriteArr = this.sprites.right;
+     break;
+ }
+ let i = this.anim.state % spriteArr.length;
+ return spriteArr[i];
 };
 
 /**
